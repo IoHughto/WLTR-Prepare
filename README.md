@@ -1,7 +1,7 @@
 # WLTR-Prepare
 Script to manage WLTR event preparation
 
-##Usage
+## Usage
 For now, all interaction with this software is via the command line and with various command-line flags.
 
 The following flags are used:
