@@ -6,23 +6,23 @@ For now, all interaction with this software is via the command line and with var
 
 The following flags are used:
 *  -add string
-*    	New file to add
+   * New file to add
 *  -byes string
-*    	CSV file with byes
+   * CSV file with byes
 *  -data string
-*    	File containing stored data (default "./local.json")
+   * File containing stored data (default "./local.json")
 *  -drop string
-*    	Comma-separated list (no spaces!) of DCI numbers to drop
+   * Comma-separated list (no spaces!) of DCI numbers to drop
 *  -new
-*    	Only consider new players
+   * Only consider new players
 *  -obfuscate
-*    	Print obfuscated info instead of full info
+   * Print obfuscated info instead of full info
 *  -out string
-*    	Output file (default "./local.json")
+   * Output file (default "./local.json")
 *  -print
-*    	Print players in CSV format
+   * Print players in CSV format
 *  -save
-*    	Save file
+   * Save file
 
 The typical workflow is: 
 1) Add the my.cfbe file from an url like: /tools/sk/wltrme/\<event id\>, and save it. 
