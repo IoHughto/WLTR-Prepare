@@ -57,8 +57,8 @@ func importWLTRPlayers(file string) []wltrPerson {
 			log.Fatal(e)
 		}
 		people = append(people, wltrPerson{
-			FirstName: strings.Title(names[1]),
-			LastName:  strings.Title(names[0]),
+			FirstName: strings.Title(strings.ToLower(names[1])),
+			LastName:  strings.Title(strings.ToLower(names[0])),
 			DCI:       dci,
 			Country:   line[2],
 			Status:    line[3],
@@ -76,13 +76,17 @@ func cleanWLTR(people []wltrPerson) []data.Person {
 	var newPeople []data.Person
 	for _, person := range people {
 		newPeople = append(newPeople, data.Person{
-			FirstName: person.FirstName,
-			LastName:  person.LastName,
-			DCI:       person.DCI,
-			Country:   person.Country,
-			Status:    person.Status,
-			Role:      "Player",
-			Byes:      person.Byes,
+			FirstName:    person.FirstName,
+			LastName:     person.LastName,
+			DCI:          person.DCI,
+			Country:      person.Country,
+			Status:       person.Status,
+			Role:         "Player",
+			Byes:         person.Byes,
+			RawFirstName: person.FirstName,
+			RawLastName:  person.LastName,
+			RawDCI:       person.DCI,
+			Dropped:      false,
 		})
 	}
 	cleanedPeople, _ := data.CleanPeople(newPeople)

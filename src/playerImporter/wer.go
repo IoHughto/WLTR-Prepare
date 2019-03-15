@@ -62,13 +62,17 @@ func cleanWER(people localPlayers) []data.Person {
 			log.Fatal(e)
 		}
 		newPeople = append(newPeople, data.Person{
-			FirstName: strings.Title(person.FirstName),
-			LastName:  strings.Title(person.LastName),
-			DCI:       dci,
-			Country:   person.Country,
-			Status:    "Enrolled",
-			Role:      "Player",
-			Byes:      0,
+			FirstName:    strings.Title(strings.ToLower(person.FirstName)),
+			LastName:     strings.Title(strings.ToLower(person.LastName)),
+			DCI:          dci,
+			Country:      person.Country,
+			Status:       "Enrolled",
+			Role:         "Player",
+			Byes:         0,
+			RawFirstName: strings.Title(strings.ToLower(person.FirstName)),
+			RawLastName:  strings.Title(strings.ToLower(person.LastName)),
+			RawDCI:       dci,
+			Dropped:      false,
 		})
 	}
 	cleanedPeople, _ := data.CleanPeople(newPeople)

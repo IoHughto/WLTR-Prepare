@@ -19,7 +19,7 @@ func main() {
 	addPtr := flag.String("add", "", "New file to add")
 	savePtr := flag.Bool("save", false, "Save file")
 	outPtr := flag.String("out", "./local.json", "Output file")
-	printPtr := flag.Bool("print", false, "Print players in CSV format")
+	printPtr := flag.String("print", "", "Print players to <file> in CSV format (stdout prints to terminal instead)")
 	obfuscatePtr := flag.Bool("obfuscate", false, "Print obfuscated info instead of full info")
 	dropPtr := flag.String("drop", "", "Comma-separated list (no spaces!) of DCI numbers to drop")
 	flag.Parse()
@@ -44,11 +44,11 @@ func main() {
 		allPeople, newPeople = data.DropPlayers(*dropPtr, allPeople, newPeople)
 	}
 
-	if *printPtr {
+	if *printPtr != "" {
 		if *newPtr {
-			data.WriteCSV(newPeople, *obfuscatePtr)
+			data.WriteCSV(newPeople, *printPtr, *obfuscatePtr)
 		} else {
-			data.WriteCSV(allPeople, *obfuscatePtr)
+			data.WriteCSV(allPeople, *printPtr, *obfuscatePtr)
 		}
 	}
 	if *savePtr {

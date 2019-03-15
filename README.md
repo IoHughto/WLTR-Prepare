@@ -19,8 +19,8 @@ The following flags are used:
    * Print obfuscated info instead of full info
 *  -out string
    * Output file (default "./local.json")
-*  -print
-   * Print players in CSV format
+*  -print string
+   * Print players to <file> in CSV format (stdout prints to terminal instead)
 *  -save
    * Save file
 

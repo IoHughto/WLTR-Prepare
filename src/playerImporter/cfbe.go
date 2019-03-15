@@ -48,13 +48,17 @@ func cleanCFBE(people []cfbePerson) []data.Person {
 	for _, person := range people {
 		if person.RegistrationState == "registered" {
 			newPeople = append(newPeople, data.Person{
-				FirstName: person.FirstName,
-				LastName:  person.LastName,
-				DCI:       person.DCI,
-				Country:   person.Country,
-				Status:    person.Status,
-				Role:      person.Role,
-				Byes:      0,
+				FirstName:    person.FirstName,
+				LastName:     person.LastName,
+				DCI:          person.DCI,
+				Country:      person.Country,
+				Status:       person.Status,
+				Role:         person.Role,
+				Byes:         0,
+				RawFirstName: person.FirstName,
+				RawLastName:  person.LastName,
+				RawDCI:       person.DCI,
+				Dropped:      false,
 			})
 		}
 	}
@@ -82,8 +86,8 @@ func importCFBEPlayers(file string) []cfbePerson {
 			log.Fatal(e)
 		}
 		people = append(people, cfbePerson{
-			FirstName:         strings.Title(line[0]),
-			LastName:          strings.Title(line[1]),
+			FirstName:         strings.Title(strings.ToLower(line[0])),
+			LastName:          strings.Title(strings.ToLower(line[1])),
 			DCI:               dci,
 			Country:           line[3],
 			Status:            line[4],
