@@ -23,6 +23,8 @@ func ReadFile(file string) []data.Person {
 			people = playerImporter.ReadWERFile(file)
 		} else if playerImporter.CheckCSV(file, 9) {
 			people = playerImporter.ReadWLTRFile(file)
+		} else if playerImporter.CheckJudgeFile(file) {
+			people = playerImporter.ReadJudgeFile(file)
 		}
 	}
 	return people

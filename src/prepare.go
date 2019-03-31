@@ -6,17 +6,27 @@ import (
 	"encoding/json"
 	"fileReader"
 	"flag"
-	"fmt"
 	"log"
 	"os"
 )
 
-func main() {
+type stringArray []string
 
-	newPtr := flag.Bool("new", false, "Only consider new players")
+func (i *stringArray) String() string {
+	return "my string representation"
+}
+
+func (i *stringArray) Set(value string) error {
+	*i = append(*i, value)
+	return nil
+}
+
+func main() {
+	var addFiles stringArray
+	flag.Var(&addFiles, "add", "List of files")
 	dataPtr := flag.String("data", "./local.json", "File containing stored data")
+	judgePtr := flag.String("judge", "", "File containing staff list")
 	byesPtr := flag.String("byes", "", "CSV file with byes")
-	addPtr := flag.String("add", "", "New file to add")
 	savePtr := flag.Bool("save", false, "Save file")
 	outPtr := flag.String("out", "./local.json", "Output file")
 	printPtr := flag.String("print", "", "Print players to <file> in CSV format (stdout prints to terminal instead)")
@@ -24,48 +34,42 @@ func main() {
 	dropPtr := flag.String("drop", "", "Comma-separated list (no spaces!) of DCI numbers to drop")
 	flag.Parse()
 
-	var people []data.Person
-	var stored []data.Person
-	var byeMap map[int64]byes.ByePlayer
-	if *addPtr != "" {
-		people = fileReader.ReadFile(*addPtr)
+	var tournament data.Tournament
+	tournament = data.LoadData(*dataPtr)
+	if len(addFiles) > 0 {
+		for _, file := range addFiles {
+			tournament.Players = data.AddPlayers(fileReader.ReadFile(file), tournament.Players)
+		}
 	}
-	stored = data.LoadData(*dataPtr)
-	allPeople, newPeople := data.CombinePeople(people, stored)
-	fmt.Println("All players:", len(allPeople))
-	fmt.Println("New players:", len(newPeople))
+	if *judgePtr != "" {
+		tournament.Judges = data.AddPlayers(fileReader.ReadFile(*judgePtr), tournament.Judges)
+	}
 
 	if *byesPtr != "" {
-		byeMap = byes.LoadByes(*byesPtr)
-		allPeople = byes.UpdateByes(allPeople, byeMap)
+		tournament.Byes = byes.LoadByes(*byesPtr)
+		tournament = data.UpdateByes(tournament)
 	}
 
 	if *dropPtr != "" {
-		allPeople, newPeople = data.DropPlayers(*dropPtr, allPeople, newPeople)
+		tournament = data.DropPlayers(tournament, *dropPtr)
 	}
 
 	if *printPtr != "" {
-		if *newPtr {
-			data.WriteCSV(newPeople, *printPtr, *obfuscatePtr)
-		} else {
-			data.WriteCSV(allPeople, *printPtr, *obfuscatePtr)
-		}
+		tournament.WriteCSV(*printPtr, *obfuscatePtr)
 	}
 	if *savePtr {
-		peopleJson, _ := json.Marshal(allPeople)
+		tournamentJson, _ := json.Marshal(tournament)
 		jsonFile, err := os.Create(*outPtr)
 		if err != nil {
 			log.Fatal(err)
 		}
-		_, err = jsonFile.Write(peopleJson)
+		_, err = jsonFile.Write(tournamentJson)
 		if err != nil {
 			log.Fatal(err)
 		}
 	}
-	if len(allPeople) > 0 {
-		data.PrintDuplicates(allPeople)
-		fmt.Println(len(allPeople), "players")
-		fmt.Println(len(people), "news")
-		fmt.Println(len(stored), "old")
+	if len(tournament.Players) > 0 {
+		data.PrintDuplicates(tournament.Players)
+		tournament.PrintSummary()
 	}
 }

@@ -1,7 +1,6 @@
 package byes
 
 import (
-	"data"
 	"fmt"
 	"github.com/tealeg/xlsx"
 	"log"
@@ -43,36 +42,4 @@ func LoadByes(file string) map[int64]ByePlayer {
 		}
 	}
 	return byeMap
-}
-
-func UpdateByes(people []data.Person, byeMap map[int64]ByePlayer) []data.Person {
-	for i := 0; i < len(people); i++ {
-		validator := data.DCIValidator{DCI: people[i].DCI}.Init()
-		people[i].Byes = getMaxByes(validator, byeMap)
-	}
-
-	return people
-}
-
-func getMaxByes(validator data.DCIValidator, byeMap map[int64]ByePlayer) int {
-	var byeList []int
-	for _, dci := range validator.ValidDCIs {
-		if byeMap[dci] != (ByePlayer{}) {
-			byeList = append(byeList, byeMap[dci].Byes)
-		}
-	}
-	return max(byeList)
-}
-
-func max(ints []int) int {
-	if len(ints) == 0 {
-		return 0
-	}
-	returnInt := ints[0]
-	for _, tmpInt := range ints {
-		if tmpInt > returnInt {
-			returnInt = tmpInt
-		}
-	}
-	return returnInt
 }

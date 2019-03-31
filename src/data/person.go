@@ -1,6 +1,7 @@
 package data
 
 import (
+	"byes"
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
@@ -10,6 +11,17 @@ import (
 	"strconv"
 	"strings"
 )
+
+type Tournament struct {
+	Players []Person                 `json:"players"`
+	Judges  []Person                 `json:"judges"`
+	Byes    map[int64]byes.ByePlayer `json:"byes"`
+}
+
+type Bye struct {
+	DCI  int64 `json:"dci"`
+	Byes int   `json:"byes"`
+}
 
 type Person struct {
 	FirstName    string `json:"firstName"`
@@ -23,6 +35,37 @@ type Person struct {
 	RawLastName  string `json:"rawLastName"`
 	RawDCI       int64  `json:"rawDCI"`
 	Dropped      bool   `json:"dropped"`
+}
+
+func UpdateByes(tournament Tournament) Tournament {
+	for player := range tournament.Players {
+		validator := DCIValidator{DCI: tournament.Players[player].DCI}.Init()
+		tournament.Players[player].Byes = GetMaxByes(validator, tournament.Byes)
+	}
+	return tournament
+}
+
+func GetMaxByes(validator DCIValidator, byeMap map[int64]byes.ByePlayer) int {
+	var byeList []int
+	for _, dci := range validator.ValidDCIs {
+		if byeMap[dci] != (byes.ByePlayer{}) {
+			byeList = append(byeList, byeMap[dci].Byes)
+		}
+	}
+	return max(byeList)
+}
+
+func max(ints []int) int {
+	if len(ints) == 0 {
+		return 0
+	}
+	returnInt := ints[0]
+	for _, tmpInt := range ints {
+		if tmpInt > returnInt {
+			returnInt = tmpInt
+		}
+	}
+	return returnInt
 }
 
 func firstNameChange(newPerson Person, oldPerson Person) bool {
@@ -77,10 +120,8 @@ func isDCIMatch(person Person, check Person) bool {
 
 func PrintDuplicates(people []Person) {
 	for i, person := range people {
-		//for i := 0; i<len(people); i++ {
 		for j, otherPerson := range people {
 			if i < j {
-				//for j := i+1; j<len(people); j++ {
 				if otherPerson == person {
 					fmt.Println("Complete duplicate", otherPerson, person, i, j)
 				} else {
@@ -129,8 +170,29 @@ func getObfuscatedRow(person Person) string {
 	return person.LastName + "," + person.FirstName + "," + DCI + "," + Byes
 }
 
-func WriteCSV(people []Person, fileName string, obfuscate bool) {
-	if len(people) == 0 {
+func (tournament Tournament) PrintSummary() {
+
+	activePlayerCount := 0
+	inactivePlayerCount := 0
+	judgeCount := len(tournament.Judges)
+
+	for _, player := range tournament.Players {
+		if player.Dropped {
+			inactivePlayerCount++
+		} else {
+			activePlayerCount++
+		}
+	}
+
+	fmt.Println("Summary")
+	fmt.Printf("%-18v%v\n", "Active Players:", activePlayerCount)
+	fmt.Printf("%-18v%v\n", "Dropped Players:", inactivePlayerCount)
+	fmt.Printf("%-18v%v\n", "Judges:", judgeCount)
+
+}
+
+func (tournament Tournament) WriteCSV(fileName string, obfuscate bool) {
+	if len(tournament.Players) == 0 && len(tournament.Judges) == 0 {
 		fmt.Println("There are no records to print")
 		return
 	}
@@ -148,7 +210,7 @@ func WriteCSV(people []Person, fileName string, obfuscate bool) {
 		} else {
 			fmt.Println(headerString)
 		}
-		for _, person := range people {
+		for _, person := range tournament.Players {
 			if !person.Dropped {
 				if fileName != "stdout" {
 					_, e = fmt.Fprintln(file, getObfuscatedRow(person))
@@ -165,7 +227,12 @@ func WriteCSV(people []Person, fileName string, obfuscate bool) {
 		} else {
 			w = csv.NewWriter(os.Stdout)
 		}
-		t := reflect.TypeOf(people[0])
+		var t reflect.Type
+		if len(tournament.Players) > 0 {
+			t = reflect.TypeOf(tournament.Players[0])
+		} else {
+			t = reflect.TypeOf(tournament.Judges[0])
+		}
 		names := make([]string, t.NumField())
 		for i := range names {
 			names[i] = t.Field(i).Name
@@ -173,7 +240,14 @@ func WriteCSV(people []Person, fileName string, obfuscate bool) {
 		err := w.Write(names)
 		check(err)
 
-		for _, record := range people {
+		for _, record := range tournament.Judges {
+			if !record.Dropped {
+				err := w.Write(record.ValueStrings())
+				check(err)
+			}
+		}
+
+		for _, record := range tournament.Players {
 			if !record.Dropped {
 				err := w.Write(record.ValueStrings())
 				check(err)
@@ -202,57 +276,40 @@ func (person Person) ValueStrings() []string {
 	return ss
 }
 
-func CombinePeople(new []Person, old []Person) ([]Person, []Person) {
-	allPeople := old
-	var newPeople []Person
-	for _, person := range new {
-		if !Contains(old, person) {
-			allPeople = append(allPeople, person)
-			newPeople = append(newPeople, person)
-		}
-	}
-	return allPeople, newPeople
-}
-
-func LoadData(file string) []Person {
-	var people []Person
+func LoadData(file string) Tournament {
+	var tournament Tournament
 
 	jsonFile, err := os.Open(file)
 	if err != nil {
 		fmt.Println(err)
-		return people
+		return tournament
 	}
 
 	byteValue, err := ioutil.ReadAll(jsonFile)
 	if err != nil {
 		fmt.Println(err)
-		return people
+		return tournament
 	}
 
-	err = json.Unmarshal(byteValue, &people)
+	err = json.Unmarshal(byteValue, &tournament)
 	if err != nil {
 		fmt.Println(err)
 	}
 
-	return people
+	return tournament
 }
 
-func DropPlayers(dropList string, all []Person, new []Person) ([]Person, []Person) {
+func DropPlayers(tournament Tournament, dropList string) Tournament {
 	dciNumbersToDrop := parseDropList(dropList)
 	for _, drop := range dciNumbersToDrop {
-		allDropIndex := playerIndexExists(all, drop)
-		newDropIndex := playerIndexExists(new, drop)
-		if allDropIndex != -1 {
-			all[allDropIndex].Dropped = true
-		}
-		if newDropIndex != -1 {
-			new[newDropIndex].Dropped = true
-		}
-		if allDropIndex == -1 && newDropIndex == -1 {
+		dropIndex := playerIndexExists(tournament.Players, drop)
+		if dropIndex != -1 {
+			tournament.Players[dropIndex].Dropped = true
+		} else {
 			fmt.Println("DCI", drop, "not in event")
 		}
 	}
-	return all, new
+	return tournament
 }
 
 func parseDropList(dropList string) []int64 {
@@ -273,4 +330,15 @@ func playerIndexExists(people []Person, dci int64) int {
 		}
 	}
 	return -1
+}
+
+func AddPlayers(newPeople []Person, previousPlayers []Person) []Person {
+
+	for _, newPerson := range newPeople {
+		if !Contains(previousPlayers, newPerson) {
+			previousPlayers = append(previousPlayers, newPerson)
+		}
+	}
+
+	return previousPlayers
 }
