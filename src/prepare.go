@@ -47,6 +47,8 @@ func main() {
 
 	if *byesPtr != "" {
 		tournament.Byes = byes.LoadByes(*byesPtr)
+	}
+	if *byesPtr != "" || len(tournament.Byes) > 0 {
 		tournament = data.UpdateByes(tournament)
 	}
 
